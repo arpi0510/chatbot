@@ -12,7 +12,7 @@ app.get('/', (req : Request, resp : Response) => {
 });
 
 app.get('/api/hello', (req : Request, resp : Response) => {
-    resp.json({'message' : 'Hello World !'});
+    resp.json({'message' : 'Hello Daddy !'});
 });
 
 app.listen(port, () => {
