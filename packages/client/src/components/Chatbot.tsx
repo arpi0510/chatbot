@@ -1,17 +1,39 @@
+import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+
 import { useForm } from 'react-hook-form';
 import { Button } from './ui/button';
 import { FaArrowUp } from 'react-icons/fa';
-import type { KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 
 type FormData = {
   prompt: string;
 };
 
+type Message = {
+  message: string;
+  role: string;
+};
+
 const Chatbot = () => {
+  const conversationId = useRef(crypto.randomUUID());
   const { register, handleSubmit, reset, formState } = useForm<FormData>();
-  const onSubmit = (data: FormData) => {
-    console.log(data);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const onSubmit = async ({ prompt }: FormData) => {
+    setMessages([...messages, { message: prompt, role: 'user' }]);
+
     reset();
+    const payload = {
+      prompt: prompt,
+      conversationId: conversationId.current,
+    };
+    const apiResp = await axios.post('/api/chat', payload);
+    setMessages([
+      ...messages,
+      { message: prompt, role: 'user' },
+      { message: apiResp.data.message, role: 'bot' },
+    ]);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
@@ -22,24 +44,36 @@ const Chatbot = () => {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      onKeyDown={onKeyDown}
-      className="flex flex-col gap-2 items-end border-2 p-3 rounded-3xl"
-    >
-      <textarea
-        {...register('prompt', {
-          required: true,
-          validate: (message) => message.trim().length > 0,
-        })}
-        className="w-full border-0 focus:outline-0 resize-none"
-        placeholder="Ask anything"
-        maxLength={1000}
-      ></textarea>
-      <Button disabled={!formState.isValid} className="w-9 h-9 rounded-3xl">
-        <FaArrowUp />
-      </Button>
-    </form>
+    <div>
+      <div className="flex flex-col gap-3 mb-4">
+        {messages.map((m, index) => (
+          <p
+            key={index}
+            className={`px-3 py-1 rounded-xl ${m.role === 'user' ? 'bg-blue-800 text-white self-end' : 'bg-gray-400 text-black self-start'}`}
+          >
+            <ReactMarkdown>{m.message}</ReactMarkdown>
+          </p>
+        ))}
+      </div>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        onKeyDown={onKeyDown}
+        className="flex flex-col gap-2 items-end border-2 p-3 rounded-3xl"
+      >
+        <textarea
+          {...register('prompt', {
+            required: true,
+            validate: (message) => message.trim().length > 0,
+          })}
+          className="w-full border-0 focus:outline-0 resize-none"
+          placeholder="Ask anything"
+          maxLength={1000}
+        ></textarea>
+        <Button disabled={!formState.isValid} className="w-9 h-9 rounded-3xl">
+          <FaArrowUp />
+        </Button>
+      </form>
+    </div>
   );
 };
 
