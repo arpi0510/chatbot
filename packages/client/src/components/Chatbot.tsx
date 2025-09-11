@@ -19,6 +19,8 @@ const Chatbot = () => {
   const conversationId = useRef(crypto.randomUUID());
   const { register, handleSubmit, reset, formState } = useForm<FormData>();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [error, setError] = useState<string>('');
+
   const [isBotTyping, setIsBotTyping] = useState<Boolean>(false);
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -26,20 +28,27 @@ const Chatbot = () => {
   }, [messages]);
 
   const onSubmit = async ({ prompt }: FormData) => {
-    setIsBotTyping(true);
-    setMessages([...messages, { message: prompt, role: 'user' }]);
-    reset({ prompt: '' });
-    const payload = {
-      prompt: prompt,
-      conversationId: conversationId.current,
-    };
-    const apiResp = await axios.post('/api/chat', payload);
-    setMessages([
-      ...messages,
-      { message: prompt, role: 'user' },
-      { message: apiResp.data.message, role: 'bot' },
-    ]);
-    setIsBotTyping(false);
+    try {
+      setIsBotTyping(true);
+      setError('');
+      setMessages([...messages, { message: prompt, role: 'user' }]);
+      reset({ prompt: '' });
+      const payload = {
+        prompt: prompt,
+        conversationId: conversationId.current,
+      };
+      const apiResp = await axios.post('/api/chat', payload);
+      setMessages([
+        ...messages,
+        { message: prompt, role: 'user' },
+        { message: apiResp.data.message, role: 'bot' },
+      ]);
+    } catch (error) {
+      setError('Something went wrong. Please try again !');
+      console.error(error);
+    } finally {
+      setIsBotTyping(false);
+    }
   };
 
   const onKeyDownHandler = (e: KeyboardEvent<HTMLFormElement>) => {
@@ -77,6 +86,7 @@ const Chatbot = () => {
             <div className="w-2 h-2 rounded-2xl bg-gray-800 animate-bounce [animation-delay:0.4s]"></div>
           </div>
         )}
+        {error && <p className="text-red-500">{error}</p>}
       </div>
       <form
         onSubmit={handleSubmit(onSubmit)}
